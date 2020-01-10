@@ -79,7 +79,8 @@ func (s *Server) UseSoap12() {
 	s.ContentType = SoapContentType12
 }
 
-// RegisterHandler register to handle an operation
+// RegisterHandler register to handle an operation. This function must not be
+// called after the server has been started.
 func (s *Server) RegisterHandler(path string, action string, messageType string, requestFactory RequestFactoryFunc, operationHandlerFunc OperationHandlerFunc) {
 	if _, ok := s.handlers[path]; !ok {
 		s.handlers[path] = make(map[string]map[string]*operationHandler)
