@@ -43,20 +43,26 @@ func TestClient_Call(t *testing.T) {
   </soap12:Body>
 </soap12:Envelope>`)
 
+	clientDoFn := func(rt func(r *http.Request) (*http.Response, error)) func(req *http.Request) (*http.Response, error) {
+		return (&http.Client{
+			Transport: RoundTrip(rt),
+		}).Do
+	}
+
 	t.Run("without multipart", func(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			c := NewClient("http://localhorst.ch", &BasicAuth{
 				Login:    "test",
 				Password: "test",
-			}, RoundTrip(func(r *http.Request) (*http.Response, error) {
+			})
+			c.HTTPClientDoFn = clientDoFn(func(r *http.Request) (*http.Response, error) {
 				haveBody, _ := ioutil.ReadAll(r.Body)
 				assert.Exactly(t, wantSOAPBody, haveBody)
-
 				return &http.Response{
 					StatusCode: 200,
 					Body:       ioutil.NopCloser(bytes.NewReader(httpSOAPResponse)),
 				}, nil
-			}))
+			})
 			req := FooRequest{
 				Foo: "hello world",
 			}
@@ -69,7 +75,8 @@ func TestClient_Call(t *testing.T) {
 		})
 
 		t.Run("no soap body", func(t *testing.T) {
-			c := NewClient("http://localhorst.ch", nil, RoundTrip(func(r *http.Request) (*http.Response, error) {
+			c := NewClient("http://localhorst.ch", nil)
+			c.HTTPClientDoFn = clientDoFn(func(r *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: 200,
 					Body: ioutil.NopCloser(strings.NewReader(`<?xml version="1.0" encoding="utf-8"?>
@@ -79,7 +86,7 @@ func TestClient_Call(t *testing.T) {
   <seife:Body></seife:Body>
 </seife:Envelope>`)),
 				}, nil
-			}))
+			})
 			req := FooRequest{}
 			var resp FooResponse
 			httpResp, err := c.Call("MySOAPAction", &req, &resp)
@@ -89,7 +96,8 @@ func TestClient_Call(t *testing.T) {
 	})
 	t.Run("with multipart", func(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
-			c := NewClient("http://localhorst.ch", nil, RoundTrip(func(r *http.Request) (*http.Response, error) {
+			c := NewClient("http://localhorst.ch", nil)
+			c.HTTPClientDoFn = clientDoFn(func(r *http.Request) (*http.Response, error) {
 				buf, mw := createMultiPart(t, httpSOAPResponse)
 				hdr := http.Header{}
 				hdr.Add("Content-Type", mw.FormDataContentType())
@@ -98,7 +106,7 @@ func TestClient_Call(t *testing.T) {
 					StatusCode: 200,
 					Body:       ioutil.NopCloser(buf),
 				}, nil
-			}))
+			})
 			req := FooRequest{
 				Foo: "hello world",
 			}
@@ -110,7 +118,8 @@ func TestClient_Call(t *testing.T) {
 			assert.Exactly(t, FooResponse{Bar: `I love deadlines. I like the whooshing sound they make as they fly by.`}, resp)
 		})
 		t.Run("no soap found", func(t *testing.T) {
-			c := NewClient("http://localhorst.ch", nil, RoundTrip(func(r *http.Request) (*http.Response, error) {
+			c := NewClient("http://localhorst.ch", nil)
+			c.HTTPClientDoFn = clientDoFn(func(r *http.Request) (*http.Response, error) {
 				buf, mw := createMultiPart(t, []byte(`<wrong></wrong>`))
 				hdr := http.Header{}
 				hdr.Add("Content-Type", mw.FormDataContentType())
@@ -119,7 +128,7 @@ func TestClient_Call(t *testing.T) {
 					StatusCode: 200,
 					Body:       ioutil.NopCloser(buf),
 				}, nil
-			}))
+			})
 			req := FooRequest{
 				Foo: "hello world",
 			}

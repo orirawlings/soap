@@ -41,28 +41,28 @@ type BasicAuth struct {
 
 // Client generic SOAP client
 type Client struct {
-	Log         func(...interface{}) // optional
-	url         string
-	tls         bool
-	auth        *BasicAuth
-	rt          http.RoundTripper // optional
-	Marshaller  XMLMarshaller
-	ContentType string
-	SoapVersion string
+	Log            func(...interface{}) // optional
+	url            string
+	tls            bool
+	auth           *BasicAuth
+	Marshaller     XMLMarshaller
+	ContentType    string
+	SoapVersion    string
+	HTTPClientDoFn func(req *http.Request) (*http.Response, error)
 }
 
 // NewClient constructor. SOAP 1.1 is used by default. Switch to SOAP 1.2 with
 // UseSoap12(). Argument rt can be nil and it will fall back to the default
 // http.Transport.
-func NewClient(url string, auth *BasicAuth, rt http.RoundTripper) *Client {
+func NewClient(url string, auth *BasicAuth) *Client {
 	return &Client{
-		Log:         func(...interface{}) {}, // do nothing or add your fmt.Print* or log.*
-		url:         url,
-		auth:        auth,
-		rt:          rt,
-		Marshaller:  defaultMarshaller{},
-		ContentType: SoapContentType11, // default is SOAP 1.1
-		SoapVersion: SoapVersion11,
+		Log:            func(...interface{}) {}, // do nothing or add your fmt.Print* or log.*
+		url:            url,
+		auth:           auth,
+		Marshaller:     defaultMarshaller{},
+		ContentType:    SoapContentType11, // default is SOAP 1.1
+		SoapVersion:    SoapVersion11,
+		HTTPClientDoFn: http.DefaultClient.Do,
 	}
 }
 
@@ -107,14 +107,11 @@ func (c *Client) Call(soapAction string, request, response interface{}) (*http.R
 	}
 
 	req.Close = true
-	rt := c.rt
-	if rt == nil {
-		rt = http.DefaultTransport
-	}
-	client := &http.Client{Transport: rt}
+
+
 	c.Log("POST to", c.url, "with\n", xmlBytes)
 	c.Log("Header", req.Header)
-	httpResponse, err := client.Do(req)
+	httpResponse, err := c.HTTPClientDoFn(req)
 	if err != nil {
 		return nil, err
 	}
