@@ -99,7 +99,7 @@ func TestClient_Call(t *testing.T) {
 			var resp FooResponse
 			httpResp, err := c.Call(context.Background(), "MySOAPAction", &req, &resp)
 			assert.Nil(t, httpResp)
-			assert.EqualError(t, err, "this is not a 1.1 SOAP-Message: \"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n<seife12:Envelope xmlns:xsi=\\\"http://www.w3.org/2001/XMLSchema-instance\\\"\\n  xmlns:xsd=\\\"http://www.w3.org/2001/XMLSchema\\\" \\n  xmlns:soap12=\\\"http://www.w3.org/2003/05/soap-envelope\\\">\\n  <seife:Body></seife:Body>\\n</seife:Envelope>\"")
+			assert.EqualError(t, err, "soap/client.go Call(): COULD NOT UNMARSHAL: expected element <Envelope> in name space http://schemas.xmlsoap.org/soap/envelope/ but have seife12\n")
 		})
 	})
 	t.Run("with multipart", func(t *testing.T) {
