@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -85,4 +86,38 @@ func TestServer_ServeHTTP(t *testing.T) {
 		require.NoError(t, xml.NewDecoder(resp.Body).Decode(responseEnvelope))
 		assert.Exactly(t, "no action handler for content type: \"barRequest\"", responseEnvelope.Body.Fault.String)
 	})
+}
+
+func ExampleServer() {
+	type FooRequest struct {
+		XMLName xml.Name `xml:"FooRequest"`
+		Foo     string
+	}
+
+	// BarResponse a simple response
+	type BarResponse struct {
+		Bar string
+	}
+
+	soapServer := NewServer()
+	soapServer.Log = log.Println
+	soapServer.RegisterHandler(
+		"/pathTo",
+		"operationFoo", // SOAPAction
+		"FooRequest",   // tagname of soap body content
+		// RequestFactoryFunc - give the server sth. to unmarshal the request into
+		func() interface{} {
+			return &FooRequest{}
+		},
+		// OperationHandlerFunc - do something
+		func(request interface{}, w http.ResponseWriter, httpRequest *http.Request) (response interface{}, err error) {
+			FooRequest := request.(*FooRequest)
+			BarResponse := &BarResponse{
+				Bar: "Hello \"" + FooRequest.Foo + "\"",
+			}
+			response = BarResponse
+			return
+		},
+	)
+	_ = http.ListenAndServe(":8080", soapServer)
 }

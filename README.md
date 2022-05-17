@@ -31,7 +31,9 @@ type FooResponse struct {
 // RunServer run a little demo server
 func RunServer() {
 	soapServer := soap.NewServer()
-	soapServer.HandleOperation(
+	soapServer.RegisterHandler(
+		// HTTP listener path
+		"/",
 		// SOAPAction
 		"operationFoo",
 		// tagname of soap body content
@@ -92,5 +94,3 @@ func main() {
 	log.Println(response.Bar, httpResponse.Status)
 }
 ```
-
-#  Apache License Version 2.0
