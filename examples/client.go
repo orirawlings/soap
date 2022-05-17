@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"log"
 
-	"github.com/globusdigital/soap"
+	"github.com/orirawlings/soap"
 )
 
 // FooRequest a simple request
